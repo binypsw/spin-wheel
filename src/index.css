@@ -165,7 +165,7 @@ input, textarea, button {
 
 /* Bunting flags decoration above header */
 .setup-header::before {
-  content: '▼ ▼ ▼ ▼ ▼ ▼ ▼ ▼ ▼ ▼';
+  content: '▼ ▼ ▼ ▼ ▼ ▼ ▼ ▼';
   display: block;
   font-size: 18px;
   letter-spacing: 6px;
