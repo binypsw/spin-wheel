@@ -610,6 +610,9 @@ input, textarea, button {
   padding: 36px 40px;
   max-width: 480px;
   width: calc(100% - 32px);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
   text-align: center;
   box-shadow: 0 0 60px rgba(240, 192, 64, 0.2), var(--shadow);
   animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -632,6 +635,8 @@ input, textarea, button {
   flex-direction: column;
   gap: 12px;
   margin-bottom: 28px;
+  overflow-y: auto;
+  flex: 1 1 auto;
 }
 
 .winner-name-item {
