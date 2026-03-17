@@ -1,10 +1,10 @@
 import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle, useState } from 'react'
 
 const COLORS = [
-  '#e74c3c', '#3498db', '#2ecc71', '#f39c12',
-  '#9b59b6', '#1abc9c', '#e67e22', '#2980b9',
-  '#16a085', '#8e44ad', '#d35400', '#27ae60',
-  '#c0392b', '#2471a3', '#1e8449', '#b7770d',
+  '#ff2d2d', '#ff7700', '#ffe600', '#39ff14',
+  '#00d4ff', '#a020f0', '#ff3cac', '#00e5a0',
+  '#ff4500', '#7b00ff', '#00b4ff', '#ff1493',
+  '#ffaa00', '#32cd32', '#e040fb', '#00cfff',
 ]
 
 const FONT_SIZES = [18, 16, 14, 13, 12, 11, 10]
@@ -182,18 +182,21 @@ const WheelCanvas = forwardRef(function WheelCanvas(
       // Shadow
       ctx.shadowColor = 'rgba(0,0,0,0.5)'
       ctx.shadowBlur = 12
+      const btnGrad = ctx.createRadialGradient(cx - 6, cy - 6, 0, cx, cy, btnR)
+      btnGrad.addColorStop(0, '#5a0090')
+      btnGrad.addColorStop(1, '#1a0b35')
       ctx.beginPath()
       ctx.arc(cx, cy, btnR, 0, Math.PI * 2)
-      ctx.fillStyle = '#1e293b'
+      ctx.fillStyle = btnGrad
       ctx.fill()
       ctx.shadowBlur = 0
 
-      ctx.strokeStyle = 'rgba(255,255,255,0.8)'
+      ctx.strokeStyle = '#ffe600'
       ctx.lineWidth = 3
       ctx.stroke()
 
       // Spin text inside button
-      ctx.fillStyle = '#fff'
+      ctx.fillStyle = '#ffe600'
       ctx.font = `bold 13px 'Segoe UI', sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
