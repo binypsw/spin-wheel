@@ -1,10 +1,10 @@
 import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle, useState } from 'react'
 
 const COLORS = [
-  '#ff2d2d', '#ff7700', '#ffe600', '#39ff14',
-  '#00d4ff', '#a020f0', '#ff3cac', '#00e5a0',
-  '#ff4500', '#7b00ff', '#00b4ff', '#ff1493',
-  '#ffaa00', '#32cd32', '#e040fb', '#00cfff',
+  '#cc1122', '#1a3a6a', '#e8a800', '#c8e0f0',
+  '#8b1a24', '#2255aa', '#d4880a', '#f0f4f8',
+  '#cc1122', '#1a3a6a', '#e8a800', '#c8e0f0',
+  '#8b1a24', '#2255aa', '#d4880a', '#f0f4f8',
 ]
 
 const FONT_SIZES = [18, 16, 14, 13, 12, 11, 10]
@@ -130,10 +130,19 @@ const WheelCanvas = forwardRef(function WheelCanvas(
         ctx.textAlign = 'right'
         ctx.textBaseline = 'middle'
         const fs = getFontSize(n)
-        ctx.font = `bold ${fs}px 'Segoe UI', sans-serif`
-        ctx.shadowColor = 'rgba(0,0,0,0.6)'
-        ctx.shadowBlur = 4
-        ctx.fillStyle = '#fff'
+        ctx.font = `bold ${fs}px 'Noto Sans Thai', 'Segoe UI', sans-serif`
+        // Use dark text on light segments, white text on dark segments
+        const lightSegments = [2, 3, 6, 7, 10, 11, 14, 15] // gold & light blue
+        const isLight = !isWinner && lightSegments.includes(i % COLORS.length)
+        if (isLight) {
+          ctx.shadowColor = 'rgba(255,255,255,0.5)'
+          ctx.shadowBlur = 2
+          ctx.fillStyle = '#1a1a1a'
+        } else {
+          ctx.shadowColor = 'rgba(0,0,0,0.5)'
+          ctx.shadowBlur = 3
+          ctx.fillStyle = '#ffffff'
+        }
         const maxLen = n > 20 ? 8 : n > 12 ? 10 : 15
         const label = participants[i].length > maxLen
           ? participants[i].slice(0, maxLen) + '…'
@@ -179,28 +188,38 @@ const WheelCanvas = forwardRef(function WheelCanvas(
 
       // ── Center button ──
       const btnR = 38
-      // Shadow
-      ctx.shadowColor = 'rgba(0,0,0,0.5)'
-      ctx.shadowBlur = 12
+      ctx.shadowColor = 'rgba(0,0,0,0.4)'
+      ctx.shadowBlur = 10
       const btnGrad = ctx.createRadialGradient(cx - 6, cy - 6, 0, cx, cy, btnR)
-      btnGrad.addColorStop(0, '#5a0090')
-      btnGrad.addColorStop(1, '#1a0b35')
+      btnGrad.addColorStop(0, '#e83040')
+      btnGrad.addColorStop(1, '#8a0d15')
       ctx.beginPath()
       ctx.arc(cx, cy, btnR, 0, Math.PI * 2)
       ctx.fillStyle = btnGrad
       ctx.fill()
       ctx.shadowBlur = 0
 
-      ctx.strokeStyle = '#ffe600'
+      // Gold ring
+      ctx.strokeStyle = '#e8a800'
       ctx.lineWidth = 3
       ctx.stroke()
 
+      // Inner white ring
+      ctx.beginPath()
+      ctx.arc(cx, cy, btnR - 5, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)'
+      ctx.lineWidth = 1.5
+      ctx.stroke()
+
       // Spin text inside button
-      ctx.fillStyle = '#ffe600'
-      ctx.font = `bold 13px 'Segoe UI', sans-serif`
+      ctx.fillStyle = '#ffffff'
+      ctx.font = `bold 13px 'Noto Sans Thai', 'Segoe UI', sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
+      ctx.shadowColor = 'rgba(0,0,0,0.4)'
+      ctx.shadowBlur = 3
       ctx.fillText(isSpinning ? '⟳' : readOnly ? '👁' : 'SPIN', cx, cy)
+      ctx.shadowBlur = 0
     },
     [participants, winnerCount, isSpinning, readOnly]
   )

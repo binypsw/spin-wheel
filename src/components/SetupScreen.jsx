@@ -39,6 +39,11 @@ export default function SetupScreen({ onStart }) {
 
   return (
     <div className="setup-screen">
+      <div className="bunting-row" aria-hidden="true">
+        {['#cc1122','#e87020','#e8c800','#22aa44','#2266cc','#cc1122','#e87020','#e8c800','#22aa44','#2266cc','#cc1122','#e87020','#e8c800'].map((color, i) => (
+          <span key={i} className="bunting-flag" style={{ borderBottomColor: color }} />
+        ))}
+      </div>
       <div className="setup-card">
         <div className="setup-header">
           <span className="setup-icon">🎡</span>

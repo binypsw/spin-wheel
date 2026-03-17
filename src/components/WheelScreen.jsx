@@ -142,8 +142,16 @@ export default function WheelScreen({ config, onBack }) {
   const allWinnersFlat = rounds.flatMap((r) => r.winners)
   const canSpin = participants.length >= 1 && !isSpinning
 
+  const buntingColors = ['#cc1122','#e87020','#e8c800','#22aa44','#2266cc','#cc1122','#e87020','#e8c800','#22aa44','#2266cc','#cc1122','#e87020','#e8c800','#22aa44','#2266cc','#cc1122','#e87020','#e8c800']
+
   return (
     <div className="wheel-screen">
+      {/* Bunting flags */}
+      <div className="bunting-row" aria-hidden="true">
+        {buntingColors.map((color, i) => (
+          <span key={i} className="bunting-flag" style={{ borderBottomColor: color }} />
+        ))}
+      </div>
       {/* Header */}
       <div className="wheel-header">
         <button className="btn-icon" onClick={onBack} title="กลับไปตั้งค่า">
