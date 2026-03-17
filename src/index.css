@@ -601,21 +601,19 @@ input, textarea, button {
 .wheel-container {
   width: 100%;
   max-width: 560px;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
 }
 
 .wheel-canvas {
   display: block;
   border-radius: 50%;
   box-shadow:
-    0 0 0 6px #fff,
-    0 0 0 10px var(--c-red),
-    0 0 0 14px var(--c-navy),
-    0 0 0 18px var(--c-gold),
-    0 12px 40px rgba(0,0,0,0.25);
+    0 0 0 4px #fff,
+    0 0 0 8px var(--c-red),
+    0 6px 20px rgba(0,0,0,0.2);
   max-width: 100%;
   max-height: 100%;
   animation: wheel-idle-glow 4s ease-in-out infinite;
@@ -623,10 +621,10 @@ input, textarea, button {
 
 @keyframes wheel-idle-glow {
   0%, 100% {
-    box-shadow: 0 0 0 6px #fff, 0 0 0 10px var(--c-red), 0 0 0 14px var(--c-navy), 0 0 0 18px var(--c-gold), 0 12px 40px rgba(0,0,0,0.2);
+    box-shadow: 0 0 0 4px #fff, 0 0 0 8px var(--c-red), 0 6px 20px rgba(0,0,0,0.2);
   }
   50% {
-    box-shadow: 0 0 0 6px #fff, 0 0 0 10px var(--c-navy), 0 0 0 14px var(--c-red), 0 0 0 18px var(--c-gold), 0 12px 48px rgba(200,20,30,0.2);
+    box-shadow: 0 0 0 4px #fff, 0 0 0 8px var(--c-navy), 0 6px 24px rgba(200,20,30,0.25);
   }
 }
 
