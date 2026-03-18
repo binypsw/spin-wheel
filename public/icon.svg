@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#1a1a2e"/>
+  <!-- Outer ring -->
+  <circle cx="256" cy="256" r="230" fill="none" stroke="#FFD700" stroke-width="16"/>
+  <!-- Wheel segments (8 segments) -->
+  <path d="M256,256 L256,46 A210,210 0 0,1 404,131 Z" fill="#DC143C"/>
+  <path d="M256,256 L404,131 A210,210 0 0,1 466,256 Z" fill="#F5F5DC"/>
+  <path d="M256,256 L466,256 A210,210 0 0,1 404,381 Z" fill="#DC143C"/>
+  <path d="M256,256 L404,381 A210,210 0 0,1 256,466 Z" fill="#F5F5DC"/>
+  <path d="M256,256 L256,466 A210,210 0 0,1 108,381 Z" fill="#DC143C"/>
+  <path d="M256,256 L108,381 A210,210 0 0,1 46,256 Z" fill="#F5F5DC"/>
+  <path d="M256,256 L46,256 A210,210 0 0,1 108,131 Z" fill="#DC143C"/>
+  <path d="M256,256 L108,131 A210,210 0 0,1 256,46 Z" fill="#F5F5DC"/>
+  <!-- Divider lines -->
+  <line x1="256" y1="46" x2="256" y2="466" stroke="#FFD700" stroke-width="4"/>
+  <line x1="46" y1="256" x2="466" y2="256" stroke="#FFD700" stroke-width="4"/>
+  <line x1="108" y1="131" x2="404" y2="381" stroke="#FFD700" stroke-width="4"/>
+  <line x1="404" y1="131" x2="108" y2="381" stroke="#FFD700" stroke-width="4"/>
+  <!-- Center hub -->
+  <circle cx="256" cy="256" r="40" fill="#FFD700"/>
+  <circle cx="256" cy="256" r="24" fill="#1a1a2e"/>
+  <circle cx="256" cy="256" r="10" fill="#FFD700"/>
+  <!-- Pointer at top -->
+  <polygon points="256,20 242,56 270,56" fill="#FFD700"/>
+</svg>

@@ -185,10 +185,11 @@ input, textarea, button {
 }
 
 .setup-icon {
-  font-size: 72px;
   display: block;
-  margin-bottom: 10px;
-  filter: drop-shadow(0 4px 8px rgba(200,20,30,0.25));
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  margin: 0 auto 10px;
   animation: icon-bounce 2.5s ease-in-out infinite;
 }
 
