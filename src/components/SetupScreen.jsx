@@ -46,7 +46,10 @@ export default function SetupScreen({ onStart }) {
       </div>
       <div className="setup-card">
         <div className="setup-header">
-          <img src="/dragon.png" alt="logo" className="setup-icon" />
+          <picture>
+            <source srcSet="/dragon.webp" type="image/webp" />
+            <img src="/dragon.png" alt="logo" className="setup-icon" />
+          </picture>
           <h1>Spin Wheel Lucky Draw</h1>
           <p>ตั้งค่าการชิงโชคของคุณ</p>
         </div>

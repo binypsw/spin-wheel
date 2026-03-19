@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon-180x180.png'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,svg,woff,woff2}'],
-        globIgnores: ['**/dragon.png', '**/dragon*.png'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
+        globPatterns: ['**/*.{js,css,html,ico,svg,woff,woff2,webp}'],
+        globIgnores: ['**/dragon.png'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB
         navigateFallback: 'index.html',
         // ไม่ cache WebSocket endpoint และ live viewer route
         navigateFallbackDenylist: [/^\/ws/],
