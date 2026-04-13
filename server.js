@@ -145,8 +145,11 @@ const TIER_TO_SHEET = {
 const CODE_BRAND_TAB = 'Code brand'
 
 async function getSheetsClient() {
+  const authConfig = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+    ? { credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON) } // Railway / production
+    : { keyFile: KEY_PATH }                                                  // local dev
   const auth = new google.auth.GoogleAuth({
-    keyFile: KEY_PATH,
+    ...authConfig,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   })
   return google.sheets({ version: 'v4', auth })
