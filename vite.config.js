@@ -80,8 +80,12 @@ export default defineConfig({
     host: '0.0.0.0',
     proxy: {
       '/ws': {
-        target: 'http://localhost:3456',
+        target: 'http://localhost:8081',
         ws: true,
+        changeOrigin: true,
+      },
+      '/api': {
+        target: 'http://localhost:8081',
         changeOrigin: true,
       },
     },

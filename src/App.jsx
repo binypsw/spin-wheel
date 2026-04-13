@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import SetupScreen from './components/SetupScreen'
 import WheelScreen from './components/WheelScreen'
 import LiveView from './components/LiveView'
+import DragonEventScreen from './components/DragonEventScreen'
 
 function OfflineBanner() {
   const [offline, setOffline] = useState(!navigator.onLine)
@@ -42,7 +43,7 @@ export default function App() {
 
   const handleStart = (cfg) => {
     setConfig(cfg)
-    setScreen('wheel')
+    setScreen(cfg.mode === 'dragon' ? 'dragon' : 'wheel')
   }
 
   const handleBack = () => {
@@ -54,6 +55,15 @@ export default function App() {
       <>
         <OfflineBanner />
         <SetupScreen onStart={handleStart} />
+      </>
+    )
+  }
+
+  if (screen === 'dragon') {
+    return (
+      <>
+        <OfflineBanner />
+        <DragonEventScreen onBack={handleBack} />
       </>
     )
   }

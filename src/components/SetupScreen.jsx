@@ -150,6 +150,10 @@ export default function SetupScreen({ onStart }) {
         >
           🧪 ทดสอบ 40 คน
         </button>
+
+        <button className="btn-dragon-event" onClick={() => onStart({ mode: 'dragon' })}>
+          🐉 กิจกรรมวันเกิดมังกรน้อยเมษา 69
+        </button>
       </div>
     </div>
   )

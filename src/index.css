@@ -1264,3 +1264,297 @@ input, textarea, button {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--c-red); }
+
+/* ══════════════════════════════════════════════════════════
+   DRAGON EVENT — กิจกรรมวันเกิดมังกรน้อยเมษา 69
+   ══════════════════════════════════════════════════════════ */
+
+/* Fix 1: Progress badge inline ใน brand banner */
+.dragon-brand-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.dragon-progress-inline {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  padding: 0;
+}
+
+/* Fix 3: Mobile — wheel-left + wheel-right เรียงข้างกัน */
+@media (max-width: 900px) {
+  .dragon-wheel-layout {
+    flex-wrap: wrap !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+  }
+  .dragon-wheel-layout .wheel-center {
+    order: 1;
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+  .dragon-wheel-layout .wheel-left {
+    order: 2;
+    flex: 1 1 48% !important;
+    width: 48% !important;
+    min-width: 0;
+    flex-direction: column !important;
+  }
+  .dragon-wheel-layout .wheel-right {
+    order: 2;
+    flex: 1 1 48% !important;
+    width: 48% !important;
+    min-width: 0;
+    flex-direction: column !important;
+  }
+}
+
+/* Fix 5: Done modal */
+.dragon-done-modal {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.dragon-done-summary {
+  text-align: center;
+  padding: 10px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.dragon-done-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 20px 16px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.dragon-done-result-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  background: var(--card-bg);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.dragon-done-brand-name {
+  font-weight: 700;
+  color: var(--c-navy);
+}
+.dragon-done-winners {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ปุ่มบนหน้า Setup */
+.btn-dragon-event {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #6a0dad 0%, #9b2dc4 50%, #c850f0 100%);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  box-shadow: 0 4px 0 #400870, 0 6px 18px rgba(100,0,160,0.35);
+  letter-spacing: 0.3px;
+}
+.btn-dragon-event:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #400870, 0 10px 24px rgba(100,0,160,0.45);
+  filter: brightness(1.08);
+}
+.btn-dragon-event:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #400870;
+}
+
+/* Dragon screen หลัก */
+.dragon-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+/* State screens (loading / error / done) */
+.dragon-state-screen {
+  align-items: center;
+  justify-content: center;
+}
+.dragon-state-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 24px;
+  text-align: center;
+}
+.dragon-state-icon { font-size: 48px; }
+.dragon-state-text {
+  font-size: 16px;
+  color: var(--text-muted);
+  max-width: 360px;
+}
+
+/* Done screen */
+.dragon-done-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 24px;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.dragon-done-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--c-gold);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.dragon-done-subtitle {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.dragon-done-results {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+.dragon-result-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--card-bg);
+  border-radius: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.dragon-result-row.skipped { opacity: 0.55; }
+.dragon-result-brand { font-weight: 700; color: var(--c-navy); white-space: nowrap; }
+.dragon-result-winners { color: var(--text-muted); }
+.dragon-result-skip { color: #999; font-style: italic; }
+
+/* Progress badge ใน header */
+.dragon-progress-badge {
+  background: rgba(26,58,106,0.12);
+  border: 1px solid rgba(26,58,106,0.2);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-navy);
+}
+
+/* Brand Banner */
+.dragon-brand-banner {
+  background: linear-gradient(135deg, #6a0dad 0%, #9b2dc4 100%);
+  color: #fff;
+  padding: 14px 24px 16px;
+  text-align: center;
+  box-shadow: 0 3px 12px rgba(100,0,160,0.3);
+}
+.dragon-brand-name {
+  font-size: clamp(20px, 3.5vw, 30px);
+  font-weight: 800;
+  line-height: 1.2;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  margin-bottom: 8px;
+}
+.dragon-brand-meta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dragon-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(4px);
+}
+.dragon-meta-badge.warn {
+  background: rgba(255,80,80,0.35);
+  color: #ffe0e0;
+}
+
+/* Results panel */
+.dragon-results-panel {
+  height: 100%;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+.dragon-no-results {
+  text-align: center;
+  padding: 20px 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.dragon-skipped-round { opacity: 0.5; }
+.dragon-skip-label {
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
+  padding: 2px 8px;
+}
+
+/* Skip button */
+.btn-skip-brand {
+  background: rgba(150,150,150,0.15);
+  border: 2px dashed #bbb;
+  border-radius: 10px;
+  color: #777;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-skip-brand:hover {
+  background: rgba(150,150,150,0.25);
+  color: #444;
+}
+
+/* Winner modal — brand name */
+.dragon-modal-brand {
+  font-size: 17px;
+  font-weight: 700;
+  color: #6a0dad;
+  margin: 4px 0 12px;
+  padding: 8px 16px;
+  background: rgba(106,13,173,0.08);
+  border-radius: 8px;
+  text-align: center;
+}
+
+/* Quota warning ใน modal */
+.dragon-quota-warn {
+  margin: 8px 16px;
+  padding: 8px 14px;
+  background: rgba(255,140,0,0.1);
+  border: 1px solid rgba(255,140,0,0.3);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #b45309;
+  text-align: center;
+}
