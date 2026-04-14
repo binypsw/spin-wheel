@@ -195,6 +195,17 @@ export default function DragonEventScreen({ onBack }) {
     if (!currentBrand) return
     setSaving(true)
 
+    // คำนวณว่า winner คนไหนมาจาก review bucket (ไม่ได้อยู่ใน pool เดิมของ brand)
+    let originalPool = [...(tierParticipants[currentBrand.tier]?.[currentBrand.brand] ?? [])]
+    if (!currentBrand.isIndividual) {
+      const won = winnersPerTier[currentBrand.tier]
+      if (won && won.size > 0) {
+        originalPool = originalPool.filter(p => !won.has(p))
+      }
+    }
+    const originalPoolSet = new Set(originalPool)
+    const reviewWinners = currentWinners.filter(w => !originalPoolSet.has(w))
+
     // Snapshot state ก่อน update (ใช้สำหรับ undo)
     const prevWinnersPerTierSnapshot = {}
     for (const [k, v] of Object.entries(winnersPerTier)) {
@@ -217,6 +228,7 @@ export default function DragonEventScreen({ onBack }) {
           brand: currentBrand.brand,
           tier: currentBrand.tier,
           winners: currentWinners,
+          reviewWinners,
         }),
       })
     } catch (e) {

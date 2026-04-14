@@ -267,6 +267,39 @@ app.get('/api/dragon/data', async (req, res) => {
   }
 })
 
+// helper: เขียน/ล้างค่าในคอลัมน์ "Extra review" ของ Code brand tab สำหรับ brand นั้น
+async function writeCodeBrandExtraReview(sheets, brand, value) {
+  // หา row ของ brand (เริ่มจาก row 2 — skip header)
+  const cbRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${CODE_BRAND_TAB}!A:A`,
+  })
+  const cbRows = cbRes.data.values || []
+  let brandRowIdx = -1
+  for (let i = 1; i < cbRows.length; i++) {
+    const v = (cbRows[i]?.[0] || '').trim()
+    if (brandMatch(v, brand)) { brandRowIdx = i; break }
+  }
+  if (brandRowIdx < 0) return
+
+  // หาคอลัมน์ "Extra review" จาก header row
+  const hRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${CODE_BRAND_TAB}!1:1`,
+  })
+  const headers = hRes.data.values?.[0] || []
+  let colIdx = headers.findIndex(h => h.toLowerCase().trim() === 'extra review')
+  if (colIdx < 0) colIdx = 8 // fallback column I ถ้าไม่มี header
+  const colLetter = String.fromCharCode(65 + colIdx)
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${CODE_BRAND_TAB}!${colLetter}${brandRowIdx + 1}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[value]] },
+  })
+}
+
 // helper: หา brandCol + winnerCells จาก tier tab
 async function findWinnerCells(sheets, tabName, brand, winners) {
   const tabRes = await sheets.spreadsheets.values.get({
@@ -292,8 +325,9 @@ async function findWinnerCells(sheets, tabName, brand, winners) {
 }
 
 // POST /api/dragon/record-winners — บันทึกผู้ชนะ (bold + yellow background)
+// reviewWinners (optional): รายชื่อที่มาจาก review bucket — บันทึกลง Code brand tab
 app.post('/api/dragon/record-winners', async (req, res) => {
-  const { brand, tier, winners } = req.body
+  const { brand, tier, winners, reviewWinners } = req.body
   if (!brand || !tier || !Array.isArray(winners)) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
@@ -328,6 +362,11 @@ app.post('/api/dragon/record-winners', async (req, res) => {
         spreadsheetId: SPREADSHEET_ID,
         requestBody: { requests },
       })
+    }
+
+    // บันทึก review bucket winners ลง Code brand tab คอลัมน์ "Extra review"
+    if (Array.isArray(reviewWinners) && reviewWinners.length > 0) {
+      await writeCodeBrandExtraReview(sheets, brand, reviewWinners.join(', '))
     }
 
     res.json({ success: true, formattedRows: winnerCells.length })
@@ -369,6 +408,9 @@ app.post('/api/dragon/undo-winners', async (req, res) => {
         requestBody: { requests },
       })
     }
+
+    // ล้าง review bucket winners ใน Code brand tab คอลัมน์ "Extra review"
+    await writeCodeBrandExtraReview(sheets, brand, '')
 
     res.json({ success: true, restoredRows: winnerCells.length })
   } catch (err) {
