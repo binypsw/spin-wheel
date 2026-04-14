@@ -178,7 +178,7 @@ const WheelCanvas = forwardRef(function WheelCanvas(
         ctx.lineTo(-10, -18)
         ctx.lineTo(10, -18)
         ctx.closePath()
-        ctx.fillStyle = '#f8c307'
+        ctx.fillStyle = '#ff4500'
         ctx.fill()
         ctx.strokeStyle = '#fff'
         ctx.lineWidth = 2

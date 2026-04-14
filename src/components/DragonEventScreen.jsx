@@ -8,18 +8,29 @@ function generateRoomId() {
   return Math.random().toString(36).substring(2, 10).toUpperCase()
 }
 
+// Brand → Size bucket mapping (5 exception brands)
+const SIZE_BRAND_MAP = {
+  'Momamaru (2T) - M': '2T - M',
+  'So Sleep (2T) - M': '2T - M',
+  'Momamaru (2T) - F': '2T - F',
+  'So Sleep (2T) - F': '2T - F',
+}
+const SNUGGLE_UP_BRAND = 'Snuggle up (2T)'
+
 export default function DragonEventScreen({ onBack }) {
   const [loading, setLoading]                   = useState(true)
   const [error, setError]                       = useState(null)
   const [brands, setBrands]                     = useState([])
   const [tierParticipants, setTierParticipants] = useState({})
+  const [codePeople, setCodePeople]             = useState({ reviewBucket: [], sizeBuckets: {} })
   const [currentIndex, setCurrentIndex]         = useState(0)
   const [winnersPerTier, setWinnersPerTier]     = useState({})
+  const [spinHistory, setSpinHistory]           = useState([])
   const [results, setResults]                   = useState([])
   const [isSpinning, setIsSpinning]             = useState(false)
   const [currentWinners, setCurrentWinners]     = useState([])
   const [showModal, setShowModal]               = useState(false)
-  const [showDoneModal, setShowDoneModal]       = useState(false)  // Fix 5
+  const [showDoneModal, setShowDoneModal]       = useState(false)
   const [saving, setSaving]                     = useState(false)
   // Live
   const [isLive, setIsLive]                     = useState(false)
@@ -39,6 +50,7 @@ export default function DragonEventScreen({ onBack }) {
         if (data.error) throw new Error(data.error)
         setBrands(data.brands)
         setTierParticipants(data.tierParticipants)
+        setCodePeople(data.codePeople || { reviewBucket: [], sizeBuckets: {} })
         setLoading(false)
       })
       .catch(err => { setError(err.message); setLoading(false) })
@@ -91,19 +103,45 @@ export default function DragonEventScreen({ onBack }) {
   // ── pool ผู้เข้าร่วม ──────────────────────────────────────
   const currentBrand = brands[currentIndex]
 
-  const getEffectiveParticipants = useCallback((brand, tParticipants, wonPerTier) => {
+  const getEffectiveParticipants = useCallback((brand, tParticipants, wonPerTier, cpData) => {
     if (!brand) return []
-    const pool = tParticipants[brand.tier]?.[brand.brand] ?? []
-    if (brand.isIndividual) return pool
-    const won = wonPerTier[brand.tier]
-    if (!won || won.size === 0) return pool
-    const filtered = pool.filter(p => !won.has(p))
-    // กรณีพิเศษ: ตัดออกจนหมด → คืน pool ดั้งเดิม
-    return filtered.length > 0 ? filtered : pool
+    let pool = [...(tParticipants[brand.tier]?.[brand.brand] ?? [])]
+
+    // For shared pool: กรองผู้ชนะจาก tier เดียวกันออก
+    if (!brand.isIndividual) {
+      const won = wonPerTier[brand.tier]
+      if (won && won.size > 0) {
+        pool = pool.filter(p => !won.has(p))
+      }
+    }
+
+    // เติมจาก Code people ถ้า pool < quota
+    if (pool.length < brand.quota) {
+      const needed = brand.quota - pool.length
+      const poolSet = new Set(pool)
+
+      let fillPool
+      if (brand.brand === SNUGGLE_UP_BRAND) {
+        fillPool = [
+          ...(cpData.sizeBuckets?.['2T - M'] ?? []),
+          ...(cpData.sizeBuckets?.['2T - F'] ?? []),
+        ]
+      } else if (SIZE_BRAND_MAP[brand.brand]) {
+        fillPool = cpData.sizeBuckets?.[SIZE_BRAND_MAP[brand.brand]] ?? []
+      } else {
+        fillPool = cpData.reviewBucket ?? []
+      }
+
+      const candidates = fillPool.filter(p => !poolSet.has(p))
+      const shuffled = [...candidates].sort(() => Math.random() - 0.5)
+      pool = [...pool, ...shuffled.slice(0, needed)]
+    }
+
+    return pool
   }, [])
 
   const participants = currentBrand
-    ? getEffectiveParticipants(currentBrand, tierParticipants, winnersPerTier)
+    ? getEffectiveParticipants(currentBrand, tierParticipants, winnersPerTier, codePeople)
     : []
 
   const effectiveWinnerCount = currentBrand
@@ -157,7 +195,19 @@ export default function DragonEventScreen({ onBack }) {
     if (!currentBrand) return
     setSaving(true)
 
-    const remainingQuota = Math.max(0, currentBrand.quota - currentWinners.length)
+    // Snapshot state ก่อน update (ใช้สำหรับ undo)
+    const prevWinnersPerTierSnapshot = {}
+    for (const [k, v] of Object.entries(winnersPerTier)) {
+      prevWinnersPerTierSnapshot[k] = new Set(v)
+    }
+    const historyEntry = {
+      brandIndex: currentIndex,
+      brandName: currentBrand.brand,
+      tier: currentBrand.tier,
+      winners: [...currentWinners],
+      prevWinnersPerTier: prevWinnersPerTierSnapshot,
+      prevResults: [...results],
+    }
 
     try {
       await fetch('/api/dragon/record-winners', {
@@ -167,7 +217,6 @@ export default function DragonEventScreen({ onBack }) {
           brand: currentBrand.brand,
           tier: currentBrand.tier,
           winners: currentWinners,
-          remainingQuota,
         }),
       })
     } catch (e) {
@@ -183,16 +232,44 @@ export default function DragonEventScreen({ onBack }) {
     }
 
     setResults(prev => [...prev, { brandName: currentBrand.brand, winners: currentWinners }])
+    setSpinHistory(prev => [...prev, historyEntry])
     setShowModal(false)
     setSaving(false)
     setCurrentWinners([])
 
-    // Fix 5: ถ้า brand สุดท้าย → แสดง done modal แทนการเลื่อน index ออกนอก array
     if (currentIndex + 1 >= brands.length) {
       setShowDoneModal(true)
     } else {
       setCurrentIndex(prev => prev + 1)
     }
+  }
+
+  // ── Undo spin ────────────────────────────────────────────
+  const handleUndo = async () => {
+    if (spinHistory.length === 0 || isSpinning) return
+    const last = spinHistory[spinHistory.length - 1]
+    setSaving(true)
+    try {
+      await fetch('/api/dragon/undo-winners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brand: last.brandName,
+          tier: last.tier,
+          winners: last.winners,
+        }),
+      })
+    } catch (e) {
+      console.error('Failed to undo winners:', e)
+    }
+    setCurrentIndex(last.brandIndex)
+    setResults(last.prevResults)
+    setWinnersPerTier(last.prevWinnersPerTier)
+    setSpinHistory(prev => prev.slice(0, -1))
+    setCurrentWinners([])
+    setShowModal(false)
+    setShowDoneModal(false)
+    setSaving(false)
   }
 
   // ── center-click ─────────────────────────────────────────
@@ -307,6 +384,14 @@ export default function DragonEventScreen({ onBack }) {
               disabled={isSpinning || noParticipants}
             >
               {isSpinning ? '⟳ กำลังหมุน...' : '🎯 หมุนวงล้อ!'}
+            </button>
+            <button
+              className="btn-undo"
+              onClick={handleUndo}
+              disabled={spinHistory.length === 0 || isSpinning || saving}
+              title="ย้อนกลับ Spin ล่าสุด"
+            >
+              ↩ Undo
             </button>
           </div>
           <p className="drag-hint">
