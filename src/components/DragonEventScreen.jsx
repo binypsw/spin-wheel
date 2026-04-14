@@ -447,24 +447,26 @@ export default function DragonEventScreen({ onBack }) {
         <div className="wheel-right">
           <div className="all-winners-panel dragon-results-panel">
             <div className="panel-title">ผลการจับรางวัล</div>
-            {results.length === 0 ? (
-              <div className="dragon-no-results">ยังไม่มีผลการจับรางวัล</div>
-            ) : (
-              results.map((r, i) => (
-                <div key={i} className="round-group">
-                  <div className="round-title">🎁 {r.brandName}</div>
-                  <ul className="all-winners-list">
-                    {r.winners.map((w, j) => (
-                      <li key={j}>
-                        <span className="winner-star">🏆</span>
-                        <span>{w}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))
-            )}
-            <div ref={resultsEndRef} />
+            <div className="dragon-results-scroll">
+              {results.length === 0 ? (
+                <div className="dragon-no-results">ยังไม่มีผลการจับรางวัล</div>
+              ) : (
+                results.map((r, i) => (
+                  <div key={i} className="round-group">
+                    <div className="round-title">🎁 {r.brandName}</div>
+                    <ul className="all-winners-list">
+                      {r.winners.map((w, j) => (
+                        <li key={j}>
+                          <span className="winner-star">🏆</span>
+                          <span>{w}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              )}
+              <div ref={resultsEndRef} />
+            </div>
           </div>
         </div>
       </div>

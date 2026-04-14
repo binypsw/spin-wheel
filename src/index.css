@@ -1515,11 +1515,19 @@ input, textarea, button {
   color: #ffe0e0;
 }
 
-/* Results panel */
+/* Results panel — panel-title fixed, content scrolls */
 .dragon-results-panel {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   max-height: 65vh;
+  overflow: hidden;
+}
+.dragon-results-scroll {
   overflow-y: auto;
+  flex: 1 1 0;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
 }
 .dragon-no-results {
   text-align: center;

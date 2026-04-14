@@ -5,10 +5,12 @@ export default function LiveView({ roomId }) {
   const [config, setConfig] = useState(null)
   const [winners, setWinners] = useState([])
   const [allWinners, setAllWinners] = useState([])
+  const [rounds, setRounds] = useState([])
   const [isConnected, setIsConnected] = useState(false)
   const [hostDisconnected, setHostDisconnected] = useState(false)
   const [showWinnerBanner, setShowWinnerBanner] = useState(false)
   const [currentWinnerNames, setCurrentWinnerNames] = useState([])
+  const resultsEndRef = useRef(null)
 
   const wheelRef = useRef(null)
   const wsRef = useRef(null)
@@ -37,6 +39,7 @@ export default function LiveView({ roomId }) {
           winnerCount: data.winnerCount,
         })
         setAllWinners(data.allWinners || [])
+        setRounds(data.rounds || [])
         setWinners(data.winners || [])
         if (data.rotation !== undefined) {
           wheelRef.current?.setRotation(data.rotation)
@@ -98,6 +101,10 @@ export default function LiveView({ roomId }) {
       wsRef.current?.close()
     }
   }, [])
+
+  useEffect(() => {
+    resultsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [rounds])
 
   if (!isConnected && !config) {
     return (
@@ -171,19 +178,29 @@ export default function LiveView({ roomId }) {
         </div>
 
         <div className="wheel-right">
-          {allWinners.length > 0 && (
-            <div className="all-winners-panel">
-              <div className="panel-title">ผู้ได้รับรางวัล</div>
-              <ul className="all-winners-list">
-                {allWinners.map((w, i) => (
-                  <li key={i}>
-                    <span className="rank">#{i + 1}</span>
-                    <span>{w}</span>
-                  </li>
-                ))}
-              </ul>
+          <div className="all-winners-panel dragon-results-panel">
+            <div className="panel-title">ผลการจับรางวัล</div>
+            <div className="dragon-results-scroll">
+              {rounds.length === 0 ? (
+                <div className="dragon-no-results">ยังไม่มีผลการจับรางวัล</div>
+              ) : (
+                rounds.map((r, i) => (
+                  <div key={i} className="round-group">
+                    <div className="round-title">🎁 {r.round}</div>
+                    <ul className="all-winners-list">
+                      {r.winners.map((w, j) => (
+                        <li key={j}>
+                          <span className="winner-star">🏆</span>
+                          <span>{w}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              )}
+              <div ref={resultsEndRef} />
             </div>
-          )}
+          </div>
         </div>
       </div>
 
