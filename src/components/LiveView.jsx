@@ -74,6 +74,9 @@ export default function LiveView({ roomId }) {
             names.forEach((n) => { if (!next.includes(n)) next.push(n) })
             return next
           })
+          if (names.length > 0) {
+            setRounds((prev) => [...prev, { round: prev.length + 1, winners: names }])
+          }
           return prev
         })
         setTimeout(() => setShowWinnerBanner(false), 6000)
