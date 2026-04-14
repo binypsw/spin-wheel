@@ -695,6 +695,23 @@ input, textarea, button {
   transform: none;
 }
 
+.btn-undo {
+  background: #334155;
+  color: #e2e8f0;
+  border: 1.5px solid #475569;
+  border-radius: 50px;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 3px 0 #1e293b;
+  white-space: nowrap;
+}
+.btn-undo:hover:not(:disabled) { background: #475569; transform: translateY(-2px); box-shadow: 0 5px 0 #1e293b; }
+.btn-undo:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #1e293b; }
+.btn-undo:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; transform: none; }
+
 .btn-reset {
   background: #fff;
   border: 2px solid rgba(26,58,106,0.2);
@@ -1498,11 +1515,19 @@ input, textarea, button {
   color: #ffe0e0;
 }
 
-/* Results panel */
+/* Results panel — panel-title fixed, content scrolls */
 .dragon-results-panel {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   max-height: 65vh;
+  overflow: hidden;
+}
+.dragon-results-scroll {
   overflow-y: auto;
+  flex: 1 1 0;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
 }
 .dragon-no-results {
   text-align: center;

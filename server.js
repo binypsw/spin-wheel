@@ -233,16 +233,101 @@ app.get('/api/dragon/data', async (req, res) => {
       }
     }
 
-    res.json({ brands, tierParticipants })
+    // 3. ดึงข้อมูล Code people (Name, Code, Extra review, Size)
+    const CODE_PEOPLE_TAB = 'Code people'
+    let codePeople = { reviewBucket: [], sizeBuckets: {} }
+    try {
+      const cpRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${CODE_PEOPLE_TAB}!A:D`,
+      })
+      const cpRows = cpRes.data.values || []
+      const reviewBucket = []
+      const sizeBuckets = {}
+      for (let i = 1; i < cpRows.length; i++) {
+        const name = (cpRows[i]?.[0] || '').trim()
+        if (!name) continue
+        const extraReview = (cpRows[i]?.[2] || '').trim()
+        const size = (cpRows[i]?.[3] || '').trim()
+        if (extraReview === 'Yes') reviewBucket.push(name)
+        if (size) {
+          if (!sizeBuckets[size]) sizeBuckets[size] = []
+          sizeBuckets[size].push(name)
+        }
+      }
+      codePeople = { reviewBucket, sizeBuckets }
+    } catch (e) {
+      console.error(`Code people tab error:`, e.message)
+    }
+
+    res.json({ brands, tierParticipants, codePeople })
   } catch (err) {
     console.error('Dragon data error:', err)
     res.status(500).json({ error: err.message })
   }
 })
 
-// POST /api/dragon/record-winners — บันทึกผู้ชนะ (bold+green) และอัพเดทสถานะ brand
+// helper: เขียน/ล้างค่าในคอลัมน์ "Extra review" ของ Code brand tab สำหรับ brand นั้น
+async function writeCodeBrandExtraReview(sheets, brand, value) {
+  // หา row ของ brand (เริ่มจาก row 2 — skip header)
+  const cbRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${CODE_BRAND_TAB}!A:A`,
+  })
+  const cbRows = cbRes.data.values || []
+  let brandRowIdx = -1
+  for (let i = 1; i < cbRows.length; i++) {
+    const v = (cbRows[i]?.[0] || '').trim()
+    if (brandMatch(v, brand)) { brandRowIdx = i; break }
+  }
+  if (brandRowIdx < 0) return
+
+  // หาคอลัมน์ "Extra review" จาก header row
+  const hRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${CODE_BRAND_TAB}!1:1`,
+  })
+  const headers = hRes.data.values?.[0] || []
+  let colIdx = headers.findIndex(h => h.toLowerCase().trim() === 'extra review')
+  if (colIdx < 0) colIdx = 8 // fallback column I ถ้าไม่มี header
+  const colLetter = String.fromCharCode(65 + colIdx)
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${CODE_BRAND_TAB}!${colLetter}${brandRowIdx + 1}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[value]] },
+  })
+}
+
+// helper: หา brandCol + winnerCells จาก tier tab
+async function findWinnerCells(sheets, tabName, brand, winners) {
+  const tabRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${tabName}!A:Z`,
+  })
+  const tabData = tabRes.data.values || []
+  const headerRow = tabData[0] || []
+  let brandCol = -1
+  for (let col = 0; col < headerRow.length; col++) {
+    const cleanHeader = (headerRow[col] || '').trim().replace(/\s*\(\d+\)\s*$/, '')
+    if (brandMatch(cleanHeader, brand)) { brandCol = col; break }
+  }
+  const winnerSet = new Set(winners)
+  const winnerCells = []
+  if (brandCol >= 0) {
+    for (let row = 1; row < tabData.length; row++) {
+      const val = (tabData[row]?.[brandCol] || '').trim()
+      if (winnerSet.has(val)) winnerCells.push({ rowIdx: row, colIdx: brandCol })
+    }
+  }
+  return winnerCells
+}
+
+// POST /api/dragon/record-winners — บันทึกผู้ชนะ (bold + yellow background)
+// reviewWinners (optional): รายชื่อที่มาจาก review bucket — บันทึกลง Code brand tab
 app.post('/api/dragon/record-winners', async (req, res) => {
-  const { brand, tier, winners, remainingQuota } = req.body
+  const { brand, tier, winners, reviewWinners } = req.body
   if (!brand || !tier || !Array.isArray(winners)) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
@@ -251,39 +336,10 @@ app.post('/api/dragon/record-winners', async (req, res) => {
     const meta = await getSheetMeta(sheets)
     const tabName = TIER_TO_SHEET[tier] || tier
     const sheetId = meta[tabName]
-    const codeBrandSheetId = meta[CODE_BRAND_TAB]
 
-    // โครงสร้าง: Row 1 = brand headers แนวนอน, Row 2+ = participants ต่อ column
-    const tabRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${tabName}!A:Z`,
-    })
-    const tabData = tabRes.data.values || []
-    const headerRow = tabData[0] || []
-
-    // หา column index ของ brand นี้
-    let brandCol = -1
-    for (let col = 0; col < headerRow.length; col++) {
-      const cleanHeader = (headerRow[col] || '').trim().replace(/\s*\(\d+\)\s*$/, '')
-      if (brandMatch(cleanHeader, brand)) {
-        brandCol = col
-        break
-      }
-    }
-
-    // หา cells ของผู้ชนะในคอลัมน์ของ brand นี้
-    const winnerSet = new Set(winners)
-    const winnerCells = [] // [{rowIdx, colIdx}]
-    if (brandCol >= 0) {
-      for (let row = 1; row < tabData.length; row++) {
-        const val = (tabData[row]?.[brandCol] || '').trim()
-        if (winnerSet.has(val)) winnerCells.push({ rowIdx: row, colIdx: brandCol })
-      }
-    }
+    const winnerCells = await findWinnerCells(sheets, tabName, brand, winners)
 
     const requests = []
-
-    // Format ผู้ชนะ: bold + สีเขียว
     if (sheetId !== undefined) {
       for (const { rowIdx, colIdx } of winnerCells) {
         requests.push({
@@ -291,45 +347,11 @@ app.post('/api/dragon/record-winners', async (req, res) => {
             range: { sheetId, startRowIndex: rowIdx, endRowIndex: rowIdx + 1, startColumnIndex: colIdx, endColumnIndex: colIdx + 1 },
             cell: {
               userEnteredFormat: {
-                textFormat: { bold: true, foregroundColor: { red: 0.133, green: 0.545, blue: 0.133 } },
+                backgroundColor: { red: 1, green: 0.953, blue: 0.204 },
+                textFormat: { bold: true },
               },
             },
-            fields: 'userEnteredFormat.textFormat.bold,userEnteredFormat.textFormat.foregroundColor',
-          },
-        })
-      }
-    }
-
-    // ถ้า remainingQuota > 0: เปลี่ยนสีชื่อ brand เป็นแดง + เขียนจำนวนที่เหลือลง Column H (remain)
-    if (remainingQuota > 0 && codeBrandSheetId !== undefined) {
-      const cbRowsRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${CODE_BRAND_TAB}!A:A`,
-      })
-      const cbRows = cbRowsRes.data.values || []
-      let brandRowIdx = -1
-      for (let i = 0; i < cbRows.length; i++) {
-        const v = (cbRows[i]?.[0] || '').trim()
-        if (brandMatch(v, brand)) { brandRowIdx = i; break }
-      }
-      if (brandRowIdx >= 0) {
-        // เขียนจำนวนที่เหลือลง Column H (remain) — ไม่แก้ไขชื่อ brand ใน Column A
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: SPREADSHEET_ID,
-          range: `${CODE_BRAND_TAB}!H${brandRowIdx + 1}`,
-          valueInputOption: 'RAW',
-          requestBody: { values: [[remainingQuota]] },
-        })
-        // เปลี่ยนสีชื่อ brand ใน Column A เป็นสีแดง
-        requests.push({
-          repeatCell: {
-            range: { sheetId: codeBrandSheetId, startRowIndex: brandRowIdx, endRowIndex: brandRowIdx + 1, startColumnIndex: 0, endColumnIndex: 1 },
-            cell: {
-              userEnteredFormat: {
-                textFormat: { foregroundColor: { red: 0.8, green: 0.0, blue: 0.0 } },
-              },
-            },
-            fields: 'userEnteredFormat.textFormat.foregroundColor',
+            fields: 'userEnteredFormat.backgroundColor,userEnteredFormat.textFormat.bold',
           },
         })
       }
@@ -342,9 +364,57 @@ app.post('/api/dragon/record-winners', async (req, res) => {
       })
     }
 
+    // บันทึก review bucket winners ลง Code brand tab คอลัมน์ "Extra review"
+    if (Array.isArray(reviewWinners) && reviewWinners.length > 0) {
+      await writeCodeBrandExtraReview(sheets, brand, reviewWinners.join(', '))
+    }
+
     res.json({ success: true, formattedRows: winnerCells.length })
   } catch (err) {
     console.error('Record winners error:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/dragon/undo-winners — ย้อนกลับ yellow background + bold → ปกติ
+app.post('/api/dragon/undo-winners', async (req, res) => {
+  const { brand, tier, winners } = req.body
+  if (!brand || !tier || !Array.isArray(winners)) {
+    return res.status(400).json({ error: 'Missing required fields' })
+  }
+  try {
+    const sheets = await getSheetsClient()
+    const meta = await getSheetMeta(sheets)
+    const tabName = TIER_TO_SHEET[tier] || tier
+    const sheetId = meta[tabName]
+
+    const winnerCells = await findWinnerCells(sheets, tabName, brand, winners)
+
+    if (sheetId !== undefined && winnerCells.length > 0) {
+      const requests = winnerCells.map(({ rowIdx, colIdx }) => ({
+        repeatCell: {
+          range: { sheetId, startRowIndex: rowIdx, endRowIndex: rowIdx + 1, startColumnIndex: colIdx, endColumnIndex: colIdx + 1 },
+          cell: {
+            userEnteredFormat: {
+              backgroundColor: { red: 1, green: 1, blue: 1 },
+              textFormat: { bold: false },
+            },
+          },
+          fields: 'userEnteredFormat.backgroundColor,userEnteredFormat.textFormat.bold',
+        },
+      }))
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: { requests },
+      })
+    }
+
+    // ล้าง review bucket winners ใน Code brand tab คอลัมน์ "Extra review"
+    await writeCodeBrandExtraReview(sheets, brand, '')
+
+    res.json({ success: true, restoredRows: winnerCells.length })
+  } catch (err) {
+    console.error('Undo winners error:', err)
     res.status(500).json({ error: err.message })
   }
 })

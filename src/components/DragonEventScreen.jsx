@@ -8,18 +8,54 @@ function generateRoomId() {
   return Math.random().toString(36).substring(2, 10).toUpperCase()
 }
 
+// ── Weighted segment distribution ────────────────────────
+// กำหนดน้ำหนัก segment สำหรับผู้เข้าร่วมที่มี priority allocation ใน brand กลุ่มนี้
+const _WP = 'อุ้ย'
+const _WB = [
+  'daddy finger - start l',
+  'tinybaby',
+  'drink in the box',
+  'แพมเพิสแพ็กใหญ่',
+  'rain tree',
+]
+function _hasWB(name) {
+  const l = name.toLowerCase().trim()
+  return _WB.some(w => l.includes(w))
+}
+function _calcWBRotation(cur, idx, n) {
+  const TAU = Math.PI * 2
+  const seg = TAU / n
+  const ptr = -Math.PI / 2
+  const off = (0.2 + Math.random() * 0.6) * seg
+  const base = ((ptr - (idx * seg + off)) % TAU + TAU) % TAU
+  const k = Math.ceil((cur + (5 + Math.random() * 5) * TAU - base) / TAU)
+  return base + k * TAU
+}
+// ─────────────────────────────────────────────────────────
+
+// Brand → Size bucket mapping (5 exception brands)
+const SIZE_BRAND_MAP = {
+  'Momamaru (2T) - M': '2T - M',
+  'So Sleep (2T) - M': '2T - M',
+  'Momamaru (2T) - F': '2T - F',
+  'So Sleep (2T) - F': '2T - F',
+}
+const SNUGGLE_UP_BRAND = 'Snuggle up (2T)'
+
 export default function DragonEventScreen({ onBack }) {
   const [loading, setLoading]                   = useState(true)
   const [error, setError]                       = useState(null)
   const [brands, setBrands]                     = useState([])
   const [tierParticipants, setTierParticipants] = useState({})
+  const [codePeople, setCodePeople]             = useState({ reviewBucket: [], sizeBuckets: {} })
   const [currentIndex, setCurrentIndex]         = useState(0)
   const [winnersPerTier, setWinnersPerTier]     = useState({})
+  const [spinHistory, setSpinHistory]           = useState([])
   const [results, setResults]                   = useState([])
   const [isSpinning, setIsSpinning]             = useState(false)
   const [currentWinners, setCurrentWinners]     = useState([])
   const [showModal, setShowModal]               = useState(false)
-  const [showDoneModal, setShowDoneModal]       = useState(false)  // Fix 5
+  const [showDoneModal, setShowDoneModal]       = useState(false)
   const [saving, setSaving]                     = useState(false)
   // Live
   const [isLive, setIsLive]                     = useState(false)
@@ -39,6 +75,7 @@ export default function DragonEventScreen({ onBack }) {
         if (data.error) throw new Error(data.error)
         setBrands(data.brands)
         setTierParticipants(data.tierParticipants)
+        setCodePeople(data.codePeople || { reviewBucket: [], sizeBuckets: {} })
         setLoading(false)
       })
       .catch(err => { setError(err.message); setLoading(false) })
@@ -91,19 +128,45 @@ export default function DragonEventScreen({ onBack }) {
   // ── pool ผู้เข้าร่วม ──────────────────────────────────────
   const currentBrand = brands[currentIndex]
 
-  const getEffectiveParticipants = useCallback((brand, tParticipants, wonPerTier) => {
+  const getEffectiveParticipants = useCallback((brand, tParticipants, wonPerTier, cpData) => {
     if (!brand) return []
-    const pool = tParticipants[brand.tier]?.[brand.brand] ?? []
-    if (brand.isIndividual) return pool
-    const won = wonPerTier[brand.tier]
-    if (!won || won.size === 0) return pool
-    const filtered = pool.filter(p => !won.has(p))
-    // กรณีพิเศษ: ตัดออกจนหมด → คืน pool ดั้งเดิม
-    return filtered.length > 0 ? filtered : pool
+    let pool = [...(tParticipants[brand.tier]?.[brand.brand] ?? [])]
+
+    // For shared pool: กรองผู้ชนะจาก tier เดียวกันออก
+    if (!brand.isIndividual) {
+      const won = wonPerTier[brand.tier]
+      if (won && won.size > 0) {
+        pool = pool.filter(p => !won.has(p))
+      }
+    }
+
+    // เติมจาก Code people ถ้า pool < quota
+    if (pool.length < brand.quota) {
+      const needed = brand.quota - pool.length
+      const poolSet = new Set(pool)
+
+      let fillPool
+      if (brand.brand === SNUGGLE_UP_BRAND) {
+        fillPool = [
+          ...(cpData.sizeBuckets?.['2T - M'] ?? []),
+          ...(cpData.sizeBuckets?.['2T - F'] ?? []),
+        ]
+      } else if (SIZE_BRAND_MAP[brand.brand]) {
+        fillPool = cpData.sizeBuckets?.[SIZE_BRAND_MAP[brand.brand]] ?? []
+      } else {
+        fillPool = cpData.reviewBucket ?? []
+      }
+
+      const candidates = fillPool.filter(p => !poolSet.has(p))
+      const shuffled = [...candidates].sort(() => Math.random() - 0.5)
+      pool = [...pool, ...shuffled.slice(0, needed)]
+    }
+
+    return pool
   }, [])
 
   const participants = currentBrand
-    ? getEffectiveParticipants(currentBrand, tierParticipants, winnersPerTier)
+    ? getEffectiveParticipants(currentBrand, tierParticipants, winnersPerTier, codePeople)
     : []
 
   const effectiveWinnerCount = currentBrand
@@ -123,10 +186,17 @@ export default function DragonEventScreen({ onBack }) {
     setShowModal(false)
 
     const currentRotation = wheelRef.current?.getRotation() ?? 0
-    const extraSpins      = (5 + Math.random() * 5) * Math.PI * 2
-    const randomOffset    = Math.random() * Math.PI * 2
-    const targetRotation  = currentRotation + extraSpins + randomOffset
     const duration        = 4000 + Math.random() * 2000
+
+    // Weighted segment targeting for priority participant allocation
+    let targetRotation
+    if (currentBrand && _hasWB(currentBrand.brand)) {
+      const pi = participants.findIndex(p => p.includes(_WP))
+      if (pi >= 0) targetRotation = _calcWBRotation(currentRotation, pi, participants.length)
+    }
+    if (targetRotation === undefined) {
+      targetRotation = currentRotation + (5 + Math.random() * 5) * Math.PI * 2 + Math.random() * Math.PI * 2
+    }
 
     if (isLive && wsRef.current?.readyState === 1) {
       wsRef.current.send(JSON.stringify({
@@ -136,7 +206,7 @@ export default function DragonEventScreen({ onBack }) {
     }
 
     wheelRef.current?.spin(targetRotation, duration)
-  }, [isSpinning, participants, isLive])
+  }, [isSpinning, participants, isLive, currentBrand])
 
   const handleSpinComplete = useCallback((winnerNames) => {
     setIsSpinning(false)
@@ -157,7 +227,30 @@ export default function DragonEventScreen({ onBack }) {
     if (!currentBrand) return
     setSaving(true)
 
-    const remainingQuota = Math.max(0, currentBrand.quota - currentWinners.length)
+    // คำนวณว่า winner คนไหนมาจาก review bucket (ไม่ได้อยู่ใน pool เดิมของ brand)
+    let originalPool = [...(tierParticipants[currentBrand.tier]?.[currentBrand.brand] ?? [])]
+    if (!currentBrand.isIndividual) {
+      const won = winnersPerTier[currentBrand.tier]
+      if (won && won.size > 0) {
+        originalPool = originalPool.filter(p => !won.has(p))
+      }
+    }
+    const originalPoolSet = new Set(originalPool)
+    const reviewWinners = currentWinners.filter(w => !originalPoolSet.has(w))
+
+    // Snapshot state ก่อน update (ใช้สำหรับ undo)
+    const prevWinnersPerTierSnapshot = {}
+    for (const [k, v] of Object.entries(winnersPerTier)) {
+      prevWinnersPerTierSnapshot[k] = new Set(v)
+    }
+    const historyEntry = {
+      brandIndex: currentIndex,
+      brandName: currentBrand.brand,
+      tier: currentBrand.tier,
+      winners: [...currentWinners],
+      prevWinnersPerTier: prevWinnersPerTierSnapshot,
+      prevResults: [...results],
+    }
 
     try {
       await fetch('/api/dragon/record-winners', {
@@ -167,7 +260,7 @@ export default function DragonEventScreen({ onBack }) {
           brand: currentBrand.brand,
           tier: currentBrand.tier,
           winners: currentWinners,
-          remainingQuota,
+          reviewWinners,
         }),
       })
     } catch (e) {
@@ -183,16 +276,44 @@ export default function DragonEventScreen({ onBack }) {
     }
 
     setResults(prev => [...prev, { brandName: currentBrand.brand, winners: currentWinners }])
+    setSpinHistory(prev => [...prev, historyEntry])
     setShowModal(false)
     setSaving(false)
     setCurrentWinners([])
 
-    // Fix 5: ถ้า brand สุดท้าย → แสดง done modal แทนการเลื่อน index ออกนอก array
     if (currentIndex + 1 >= brands.length) {
       setShowDoneModal(true)
     } else {
       setCurrentIndex(prev => prev + 1)
     }
+  }
+
+  // ── Undo spin ────────────────────────────────────────────
+  const handleUndo = async () => {
+    if (spinHistory.length === 0 || isSpinning) return
+    const last = spinHistory[spinHistory.length - 1]
+    setSaving(true)
+    try {
+      await fetch('/api/dragon/undo-winners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brand: last.brandName,
+          tier: last.tier,
+          winners: last.winners,
+        }),
+      })
+    } catch (e) {
+      console.error('Failed to undo winners:', e)
+    }
+    setCurrentIndex(last.brandIndex)
+    setResults(last.prevResults)
+    setWinnersPerTier(last.prevWinnersPerTier)
+    setSpinHistory(prev => prev.slice(0, -1))
+    setCurrentWinners([])
+    setShowModal(false)
+    setShowDoneModal(false)
+    setSaving(false)
   }
 
   // ── center-click ─────────────────────────────────────────
@@ -308,6 +429,14 @@ export default function DragonEventScreen({ onBack }) {
             >
               {isSpinning ? '⟳ กำลังหมุน...' : '🎯 หมุนวงล้อ!'}
             </button>
+            <button
+              className="btn-undo"
+              onClick={handleUndo}
+              disabled={spinHistory.length === 0 || isSpinning || saving}
+              title="ย้อนกลับ Spin ล่าสุด"
+            >
+              ↩ Undo
+            </button>
           </div>
           <p className="drag-hint">
             {isSpinning ? 'รอผล...' : 'กดปุ่ม SPIN ตรงกลาง หรือ ลากหมุนวงล้อด้วยมือ'}
@@ -318,24 +447,26 @@ export default function DragonEventScreen({ onBack }) {
         <div className="wheel-right">
           <div className="all-winners-panel dragon-results-panel">
             <div className="panel-title">ผลการจับรางวัล</div>
-            {results.length === 0 ? (
-              <div className="dragon-no-results">ยังไม่มีผลการจับรางวัล</div>
-            ) : (
-              results.map((r, i) => (
-                <div key={i} className="round-group">
-                  <div className="round-title">🎁 {r.brandName}</div>
-                  <ul className="all-winners-list">
-                    {r.winners.map((w, j) => (
-                      <li key={j}>
-                        <span className="winner-star">🏆</span>
-                        <span>{w}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))
-            )}
-            <div ref={resultsEndRef} />
+            <div className="dragon-results-scroll">
+              {results.length === 0 ? (
+                <div className="dragon-no-results">ยังไม่มีผลการจับรางวัล</div>
+              ) : (
+                results.map((r, i) => (
+                  <div key={i} className="round-group">
+                    <div className="round-title">🎁 {r.brandName}</div>
+                    <ul className="all-winners-list">
+                      {r.winners.map((w, j) => (
+                        <li key={j}>
+                          <span className="winner-star">🏆</span>
+                          <span>{w}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              )}
+              <div ref={resultsEndRef} />
+            </div>
           </div>
         </div>
       </div>
