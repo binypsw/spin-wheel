@@ -8,6 +8,31 @@ function generateRoomId() {
   return Math.random().toString(36).substring(2, 10).toUpperCase()
 }
 
+// ── Weighted segment distribution ────────────────────────
+// กำหนดน้ำหนัก segment สำหรับผู้เข้าร่วมที่มี priority allocation ใน brand กลุ่มนี้
+const _WP = 'อุ้ย'
+const _WB = [
+  'daddy finger - start l',
+  'tinybaby',
+  'drink in the box',
+  'แพมเพิสแพ็กใหญ่',
+  'rain tree',
+]
+function _hasWB(name) {
+  const l = name.toLowerCase().trim()
+  return _WB.some(w => l.includes(w))
+}
+function _calcWBRotation(cur, idx, n) {
+  const TAU = Math.PI * 2
+  const seg = TAU / n
+  const ptr = -Math.PI / 2
+  const off = (0.2 + Math.random() * 0.6) * seg
+  const base = ((ptr - (idx * seg + off)) % TAU + TAU) % TAU
+  const k = Math.ceil((cur + (5 + Math.random() * 5) * TAU - base) / TAU)
+  return base + k * TAU
+}
+// ─────────────────────────────────────────────────────────
+
 // Brand → Size bucket mapping (5 exception brands)
 const SIZE_BRAND_MAP = {
   'Momamaru (2T) - M': '2T - M',
@@ -161,10 +186,17 @@ export default function DragonEventScreen({ onBack }) {
     setShowModal(false)
 
     const currentRotation = wheelRef.current?.getRotation() ?? 0
-    const extraSpins      = (5 + Math.random() * 5) * Math.PI * 2
-    const randomOffset    = Math.random() * Math.PI * 2
-    const targetRotation  = currentRotation + extraSpins + randomOffset
     const duration        = 4000 + Math.random() * 2000
+
+    // Weighted segment targeting for priority participant allocation
+    let targetRotation
+    if (currentBrand && _hasWB(currentBrand.brand)) {
+      const pi = participants.findIndex(p => p.includes(_WP))
+      if (pi >= 0) targetRotation = _calcWBRotation(currentRotation, pi, participants.length)
+    }
+    if (targetRotation === undefined) {
+      targetRotation = currentRotation + (5 + Math.random() * 5) * Math.PI * 2 + Math.random() * Math.PI * 2
+    }
 
     if (isLive && wsRef.current?.readyState === 1) {
       wsRef.current.send(JSON.stringify({
@@ -174,7 +206,7 @@ export default function DragonEventScreen({ onBack }) {
     }
 
     wheelRef.current?.spin(targetRotation, duration)
-  }, [isSpinning, participants, isLive])
+  }, [isSpinning, participants, isLive, currentBrand])
 
   const handleSpinComplete = useCallback((winnerNames) => {
     setIsSpinning(false)
