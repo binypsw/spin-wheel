@@ -291,7 +291,7 @@ async function findWinnerCells(sheets, tabName, brand, winners) {
   return winnerCells
 }
 
-// POST /api/dragon/record-winners — บันทึกผู้ชนะ (bold+green)
+// POST /api/dragon/record-winners — บันทึกผู้ชนะ (bold + yellow background)
 app.post('/api/dragon/record-winners', async (req, res) => {
   const { brand, tier, winners } = req.body
   if (!brand || !tier || !Array.isArray(winners)) {
@@ -313,10 +313,11 @@ app.post('/api/dragon/record-winners', async (req, res) => {
             range: { sheetId, startRowIndex: rowIdx, endRowIndex: rowIdx + 1, startColumnIndex: colIdx, endColumnIndex: colIdx + 1 },
             cell: {
               userEnteredFormat: {
-                textFormat: { bold: true, foregroundColor: { red: 0.133, green: 0.545, blue: 0.133 } },
+                backgroundColor: { red: 1, green: 0.953, blue: 0.204 },
+                textFormat: { bold: true },
               },
             },
-            fields: 'userEnteredFormat.textFormat.bold,userEnteredFormat.textFormat.foregroundColor',
+            fields: 'userEnteredFormat.backgroundColor,userEnteredFormat.textFormat.bold',
           },
         })
       }
@@ -336,7 +337,7 @@ app.post('/api/dragon/record-winners', async (req, res) => {
   }
 })
 
-// POST /api/dragon/undo-winners — ย้อนกลับ bold+green → ปกติ
+// POST /api/dragon/undo-winners — ย้อนกลับ yellow background + bold → ปกติ
 app.post('/api/dragon/undo-winners', async (req, res) => {
   const { brand, tier, winners } = req.body
   if (!brand || !tier || !Array.isArray(winners)) {
@@ -356,10 +357,11 @@ app.post('/api/dragon/undo-winners', async (req, res) => {
           range: { sheetId, startRowIndex: rowIdx, endRowIndex: rowIdx + 1, startColumnIndex: colIdx, endColumnIndex: colIdx + 1 },
           cell: {
             userEnteredFormat: {
-              textFormat: { bold: false, foregroundColor: { red: 0, green: 0, blue: 0 } },
+              backgroundColor: { red: 1, green: 1, blue: 1 },
+              textFormat: { bold: false },
             },
           },
-          fields: 'userEnteredFormat.textFormat.bold,userEnteredFormat.textFormat.foregroundColor',
+          fields: 'userEnteredFormat.backgroundColor,userEnteredFormat.textFormat.bold',
         },
       }))
       await sheets.spreadsheets.batchUpdate({
