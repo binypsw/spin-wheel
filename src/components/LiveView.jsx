@@ -69,7 +69,10 @@ export default function LiveView({ roomId }) {
         // Read latest config via ref — avoids calling setters inside a setter updater
         const cfg = configRef.current
         if (cfg) {
-          const names = winnerIdxs.map((i) => cfg.participants[i]).filter(Boolean)
+          // WheelScreen sends numeric indices; DragonEventScreen sends name strings directly
+          const names = winnerIdxs.map((i) =>
+            typeof i === 'number' ? cfg.participants[i] : i
+          ).filter(Boolean)
           setCurrentWinnerNames(names)
           setShowWinnerBanner(true)
           setAllWinners((aw) => {
