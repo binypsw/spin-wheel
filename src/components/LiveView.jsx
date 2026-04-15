@@ -16,6 +16,7 @@ export default function LiveView({ roomId }) {
   const wsRef = useRef(null)
   const reconnectRef = useRef(null)
   const configRef = useRef(null)  // always holds latest config for ws handlers
+  const bannerTimerRef = useRef(null)
 
   const connect = () => {
     if (wsRef.current) return
@@ -56,13 +57,15 @@ export default function LiveView({ roomId }) {
 
       if (msg.type === 'spin_start') {
         const { startRotation, targetRotation, duration, serverTime } = msg.data
+        clearTimeout(bannerTimerRef.current)
         setWinners([])
         setShowWinnerBanner(false)
         wheelRef.current?.replaySpin(startRotation, targetRotation, duration, serverTime)
       }
 
       if (msg.type === 'spin_end') {
-        const { rotation, winners: winnerIdxs } = msg.data
+        const { rotation } = msg.data
+        const winnerIdxs = msg.data.winners ?? []
         wheelRef.current?.setRotation(rotation)
         wheelRef.current?.showWinners(winnerIdxs)
 
@@ -84,7 +87,8 @@ export default function LiveView({ roomId }) {
             setRounds((prev) => [...prev, { round: prev.length + 1, winners: names }])
           }
         }
-        setTimeout(() => setShowWinnerBanner(false), 6000)
+        clearTimeout(bannerTimerRef.current)
+        bannerTimerRef.current = setTimeout(() => setShowWinnerBanner(false), 6000)
       }
 
       if (msg.type === 'host_disconnected') {
@@ -106,6 +110,7 @@ export default function LiveView({ roomId }) {
     connect()
     return () => {
       clearTimeout(reconnectRef.current)
+      clearTimeout(bannerTimerRef.current)
       wsRef.current?.close()
     }
   }, [])
