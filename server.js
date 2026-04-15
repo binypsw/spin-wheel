@@ -46,6 +46,10 @@ wss.on('connection', (ws) => {
   let currentRoomId = null
   let isHost = false
 
+  // Heartbeat — mark alive on pong, server pings every 25s
+  ws.isAlive = true
+  ws.on('pong', () => { ws.isAlive = true })
+
   ws.on('message', (raw) => {
     let msg
     try { msg = JSON.parse(raw) } catch { return }
@@ -122,6 +126,16 @@ wss.on('connection', (ws) => {
     }
   })
 })
+
+// Ping all clients every 25 s — keeps Fly.io proxy from cutting idle WS connections
+const heartbeat = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (!ws.isAlive) { ws.terminate(); return }
+    ws.isAlive = false
+    ws.ping()
+  })
+}, 25000)
+wss.on('close', () => clearInterval(heartbeat))
 
 // ══════════════════════════════════════════════════════════
 //  DRAGON EVENT — Google Sheets API
