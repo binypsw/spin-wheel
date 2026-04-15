@@ -159,9 +159,17 @@ const TIER_TO_SHEET = {
 const CODE_BRAND_TAB = 'Code brand'
 
 async function getSheetsClient() {
-  const authConfig = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-    ? { credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON) } // Railway / production
-    : { keyFile: KEY_PATH }                                                  // local dev
+  let authConfig
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+    // Fly.io can double-escape \n in secrets → fix private_key newlines
+    if (credentials.private_key) {
+      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n')
+    }
+    authConfig = { credentials }
+  } else {
+    authConfig = { keyFile: KEY_PATH }
+  }
   const auth = new google.auth.GoogleAuth({
     ...authConfig,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
