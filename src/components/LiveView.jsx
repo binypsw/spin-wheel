@@ -15,6 +15,7 @@ export default function LiveView({ roomId }) {
   const wheelRef = useRef(null)
   const wsRef = useRef(null)
   const reconnectRef = useRef(null)
+  const configRef = useRef(null)  // always holds latest config for ws handlers
 
   const connect = () => {
     if (wsRef.current) return
@@ -33,11 +34,13 @@ export default function LiveView({ roomId }) {
 
       if (msg.type === 'full_state') {
         const data = msg.data
-        setConfig({
+        const newConfig = {
           eventName: data.eventName,
           participants: data.participants,
           winnerCount: data.winnerCount,
-        })
+        }
+        configRef.current = newConfig
+        setConfig(newConfig)
         setAllWinners(data.allWinners || [])
         setRounds(data.rounds || [])
         setWinners(data.winners || [])
@@ -63,10 +66,10 @@ export default function LiveView({ roomId }) {
         wheelRef.current?.setRotation(rotation)
         wheelRef.current?.showWinners(winnerIdxs)
 
-        // Show winner names from latest config
-        setConfig((prev) => {
-          if (!prev) return prev
-          const names = winnerIdxs.map((i) => prev.participants[i]).filter(Boolean)
+        // Read latest config via ref — avoids calling setters inside a setter updater
+        const cfg = configRef.current
+        if (cfg) {
+          const names = winnerIdxs.map((i) => cfg.participants[i]).filter(Boolean)
           setCurrentWinnerNames(names)
           setShowWinnerBanner(true)
           setAllWinners((aw) => {
@@ -77,8 +80,7 @@ export default function LiveView({ roomId }) {
           if (names.length > 0) {
             setRounds((prev) => [...prev, { round: prev.length + 1, winners: names }])
           }
-          return prev
-        })
+        }
         setTimeout(() => setShowWinnerBanner(false), 6000)
       }
 
