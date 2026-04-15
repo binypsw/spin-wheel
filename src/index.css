@@ -1519,13 +1519,10 @@ input, textarea, button {
 .dragon-results-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  max-height: 65vh;
-  overflow: hidden;
 }
 .dragon-results-scroll {
   overflow-y: auto;
-  flex: 1 1 0;
+  max-height: 55vh;
   scrollbar-width: thin;
   scrollbar-color: #ccc transparent;
 }
