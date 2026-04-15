@@ -268,11 +268,16 @@ export default function DragonEventScreen({ onBack }) {
     }
 
     if (!currentBrand.isIndividual && currentWinners.length > 0) {
-      setWinnersPerTier(prev => {
-        const newSet = new Set(prev[currentBrand.tier] || [])
-        currentWinners.forEach(w => newSet.add(w))
-        return { ...prev, [currentBrand.tier]: newSet }
-      })
+      // คนจาก review bucket ไม่นับเป็นผู้ชนะของ tier (ไม่ตัดสิทธิรอบถัดไป)
+      const reviewSet = new Set(reviewWinners)
+      const nonReviewWinners = currentWinners.filter(w => !reviewSet.has(w))
+      if (nonReviewWinners.length > 0) {
+        setWinnersPerTier(prev => {
+          const newSet = new Set(prev[currentBrand.tier] || [])
+          nonReviewWinners.forEach(w => newSet.add(w))
+          return { ...prev, [currentBrand.tier]: newSet }
+        })
+      }
     }
 
     setResults(prev => [...prev, { brandName: currentBrand.brand, winners: currentWinners }])
