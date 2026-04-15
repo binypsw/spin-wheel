@@ -153,7 +153,7 @@ export default function LiveView({ roomId }) {
         </div>
       </div>
 
-      <div className="wheel-layout">
+      <div className="wheel-layout dragon-wheel-layout">
         <div className="wheel-left">
           <div className="participants-panel">
             <div className="panel-title">
@@ -210,8 +210,9 @@ export default function LiveView({ roomId }) {
       {/* Winner banner */}
       {showWinnerBanner && currentWinnerNames.length > 0 && (
         <div className="winner-overlay" onClick={() => setShowWinnerBanner(false)}>
-          <div className="winner-modal">
+          <div className="winner-modal" onClick={(e) => e.stopPropagation()}>
             <div className="winner-modal-header">🎉 ผู้ได้รับรางวัล! 🎉</div>
+            <div className="dragon-modal-brand">🎡 {config.eventName}</div>
             <div className="winner-names">
               {currentWinnerNames.map((w, i) => (
                 <div key={i} className="winner-name-item">
