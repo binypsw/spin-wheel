@@ -15,6 +15,8 @@ export default function LiveView({ roomId }) {
   const wheelRef = useRef(null)
   const wsRef = useRef(null)
   const reconnectRef = useRef(null)
+  const configRef = useRef(null)  // always holds latest config for ws handlers
+  const bannerTimerRef = useRef(null)
 
   const connect = () => {
     if (wsRef.current) return
@@ -33,11 +35,13 @@ export default function LiveView({ roomId }) {
 
       if (msg.type === 'full_state') {
         const data = msg.data
-        setConfig({
+        const newConfig = {
           eventName: data.eventName,
           participants: data.participants,
           winnerCount: data.winnerCount,
-        })
+        }
+        configRef.current = newConfig
+        setConfig(newConfig)
         setAllWinners(data.allWinners || [])
         setRounds(data.rounds || [])
         setWinners(data.winners || [])
@@ -53,20 +57,25 @@ export default function LiveView({ roomId }) {
 
       if (msg.type === 'spin_start') {
         const { startRotation, targetRotation, duration, serverTime } = msg.data
+        clearTimeout(bannerTimerRef.current)
         setWinners([])
         setShowWinnerBanner(false)
         wheelRef.current?.replaySpin(startRotation, targetRotation, duration, serverTime)
       }
 
       if (msg.type === 'spin_end') {
-        const { rotation, winners: winnerIdxs } = msg.data
+        const { rotation } = msg.data
+        const winnerIdxs = msg.data.winners ?? []
         wheelRef.current?.setRotation(rotation)
         wheelRef.current?.showWinners(winnerIdxs)
 
-        // Show winner names from latest config
-        setConfig((prev) => {
-          if (!prev) return prev
-          const names = winnerIdxs.map((i) => prev.participants[i]).filter(Boolean)
+        // Read latest config via ref — avoids calling setters inside a setter updater
+        const cfg = configRef.current
+        if (cfg) {
+          // WheelScreen sends numeric indices; DragonEventScreen sends name strings directly
+          const names = winnerIdxs.map((i) =>
+            typeof i === 'number' ? cfg.participants[i] : i
+          ).filter(Boolean)
           setCurrentWinnerNames(names)
           setShowWinnerBanner(true)
           setAllWinners((aw) => {
@@ -77,9 +86,9 @@ export default function LiveView({ roomId }) {
           if (names.length > 0) {
             setRounds((prev) => [...prev, { round: prev.length + 1, winners: names }])
           }
-          return prev
-        })
-        setTimeout(() => setShowWinnerBanner(false), 6000)
+        }
+        clearTimeout(bannerTimerRef.current)
+        bannerTimerRef.current = setTimeout(() => setShowWinnerBanner(false), 6000)
       }
 
       if (msg.type === 'host_disconnected') {
@@ -101,6 +110,7 @@ export default function LiveView({ roomId }) {
     connect()
     return () => {
       clearTimeout(reconnectRef.current)
+      clearTimeout(bannerTimerRef.current)
       wsRef.current?.close()
     }
   }, [])
@@ -153,7 +163,7 @@ export default function LiveView({ roomId }) {
         </div>
       </div>
 
-      <div className="wheel-layout">
+      <div className="wheel-layout dragon-wheel-layout">
         <div className="wheel-left">
           <div className="participants-panel">
             <div className="panel-title">
@@ -210,8 +220,9 @@ export default function LiveView({ roomId }) {
       {/* Winner banner */}
       {showWinnerBanner && currentWinnerNames.length > 0 && (
         <div className="winner-overlay" onClick={() => setShowWinnerBanner(false)}>
-          <div className="winner-modal">
+          <div className="winner-modal" onClick={(e) => e.stopPropagation()}>
             <div className="winner-modal-header">🎉 ผู้ได้รับรางวัล! 🎉</div>
+            <div className="dragon-modal-brand">🎡 {config.eventName}</div>
             <div className="winner-names">
               {currentWinnerNames.map((w, i) => (
                 <div key={i} className="winner-name-item">
