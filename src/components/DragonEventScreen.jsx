@@ -15,7 +15,7 @@ const _WB = [
   'daddy finger - start l',
   'tinybaby',
   'drink in the box',
-  'แพมเพิสแพ็กใหญ่',
+  'แพมเพิสแพ็กใหญ่ size xl - hey tiger & rascal',
   'rain tree',
 ]
 function _hasWB(name) {
