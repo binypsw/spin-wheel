@@ -154,6 +154,8 @@ const TIER_TO_SHEET = {
   'Voucher': 'Voucher',
   'Sauce': 'Sauce',
   'ของเหลือ': 'ของเหลือ',
+  'Yoyomiii serum': 'Yoyomiii serum',
+  'Voucher my gym': 'Voucher my gym',
 }
 // Tab หลักสำหรับดึงข้อมูล brand
 const CODE_BRAND_TAB = 'Code brand'
@@ -255,22 +257,38 @@ app.get('/api/dragon/data', async (req, res) => {
       }
     }
 
-    // 3. ดึงข้อมูล Code people (Name, Code, Extra review, Size)
+    // 3. ดึงข้อมูล Code people (No + name, Code, Extra review, Size)
     const CODE_PEOPLE_TAB = 'Code people'
     let codePeople = { reviewBucket: [], sizeBuckets: {} }
     try {
       const cpRes = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${CODE_PEOPLE_TAB}!A:D`,
+        range: `${CODE_PEOPLE_TAB}!A:Z`,
       })
       const cpRows = cpRes.data.values || []
+      const cpHeader = cpRows[0] || []
+
+      // หาคอลัมน์โดย header — ถ้าไม่เจอใช้ index เดิม (safe fallback)
+      const noNameColIdx = (() => {
+        const idx = cpHeader.findIndex(h => h.trim().toLowerCase() === 'no + name')
+        return idx >= 0 ? idx : 0
+      })()
+      const extraReviewColIdx = (() => {
+        const idx = cpHeader.findIndex(h => h.trim().toLowerCase() === 'extra review')
+        return idx >= 0 ? idx : 2
+      })()
+      const sizeColIdx = (() => {
+        const idx = cpHeader.findIndex(h => h.trim().toLowerCase() === 'size')
+        return idx >= 0 ? idx : 3
+      })()
+
       const reviewBucket = []
       const sizeBuckets = {}
       for (let i = 1; i < cpRows.length; i++) {
-        const name = (cpRows[i]?.[0] || '').trim()
+        const name = (cpRows[i]?.[noNameColIdx] || '').trim()
         if (!name) continue
-        const extraReview = (cpRows[i]?.[2] || '').trim()
-        const size = (cpRows[i]?.[3] || '').trim()
+        const extraReview = (cpRows[i]?.[extraReviewColIdx] || '').trim()
+        const size = (cpRows[i]?.[sizeColIdx] || '').trim()
         if (extraReview === 'Yes') reviewBucket.push(name)
         if (size) {
           if (!sizeBuckets[size]) sizeBuckets[size] = []
