@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "mcp-harbor": {
+      "command": "npx",
+      "args": ["-y", "mcp-harbor"],
+      "env": {
+        "HARBOR_URL": "https://harbor.bu8-cwn.com",
+        "HARBOR_USERNAME": "",
+        "HARBOR_PASSWORD": "RZe8YRinKs7OPJEJhRJCCd8irx1SQeYw"
+      }
+    }
+  }
+}
